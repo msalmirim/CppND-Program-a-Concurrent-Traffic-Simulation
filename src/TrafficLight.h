@@ -58,6 +58,8 @@ private:
 
     std::condition_variable _condition;
     std::mutex _mutex;
+    TrafficLightPhase _currentPhase = red;
+    MessageQueue<TrafficLightPhase> _trafficLightPhaseQueue;
 };
 
 #endif
