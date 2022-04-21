@@ -23,7 +23,7 @@ void MessageQueue<T>::send(T &&msg)
 
 /* Implementation of class "TrafficLight" */
 
-/* 
+ 
 TrafficLight::TrafficLight()
 {
     _currentPhase = TrafficLightPhase::red;
@@ -44,6 +44,7 @@ TrafficLightPhase TrafficLight::getCurrentPhase()
 void TrafficLight::simulate()
 {
     // FP.2b : Finally, the private method „cycleThroughPhases“ should be started in a thread when the public method „simulate“ is called. To do this, use the thread queue in the base class. 
+    threads.emplace_back(std::thread(&TrafficLight::cycleThroughPhases, this));
 }
 
 // virtual function which is executed in a thread
@@ -52,7 +53,38 @@ void TrafficLight::cycleThroughPhases()
     // FP.2a : Implement the function with an infinite loop that measures the time between two loop cycles 
     // and toggles the current phase of the traffic light between red and green and sends an update method 
     // to the message queue using move semantics. The cycle duration should be a random value between 4 and 6 seconds. 
-    // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles. 
-}
+    // Also, the while-loop should use std::this_thread::sleep_for to wait 1ms between two cycles.
+    long cycleDuration = rand() % 6000 + 4000;
 
-*/
+    std::chrono::time_point<std::chrono::system_clock> lastUpdate = std::chrono::system_clock::now();
+
+    while(true)
+    {
+      // wait 1ms between two cycles
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    
+      long timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastUpdate).count();
+      if (timeSinceLastUpdate >= cycleDuration)
+      {
+        switch (_currentPhase)
+        {
+          case TrafficLightPhase::red :
+            _currentPhase = TrafficLightPhase::green;
+            std::cout << "traffic light switched to green " << std::endl;
+            break;
+          case TrafficLightPhase::green:
+            _currentPhase = TrafficLightPhase::red;
+            std::cout << "traffic light switched to red " << std::endl;
+            break;
+          default:  _currentPhase = TrafficLightPhase::red;
+        }
+      
+        // update method to the message queue using move semantics
+        //TrafficLightPhase tfr = _currentPhase;
+        _trafficLightPhaseQueue.send(std::move(_currentPhase));
+      
+        // reset stop watch for next cycle
+        lastUpdate = std::chrono::system_clock::now();
+      }
+    }  
+}
